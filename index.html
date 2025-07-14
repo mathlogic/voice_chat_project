@@ -270,8 +270,18 @@
         return;
       }
 
-      const combinedTranscript = window.interviewTranscript.map((pair,index)=>
-        `Q${index +1}: ${pair.question}\nA${index + 1}: ${pair.answer}`
+      // translate transcript to English on the server
+      const translateRes = await fetch("http://localhost:8000/translate-transcript", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transcript: window.interviewTranscript })
+      });
+
+      const translated = await translateRes.json();
+      const processedTranscript = translated.transcript || window.interviewTranscript;
+
+      const combinedTranscript = processedTranscript.map((pair, index) =>
+        `Q${index + 1}: ${pair.question}\nA${index + 1}: ${pair.answer}`
       ).join('\n\n');
 
       const prompt = `
@@ -304,6 +314,13 @@
       const feedbackEl = document.createElement('div');
       feedbackEl.innerHTML = `<h3> Interview feedback </h3><p>${markdownHTML}</p>`;
       document.getElementById('output').appendChild(feedbackEl);
+
+      // persist transcript on the server
+      await fetch("http://localhost:8000/save-transcript", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transcript: window.interviewTranscript })
+      });
     }
 
   </script>
